@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
-      POSTGRES_Db: regon
+      POSTGRES_DB: regon
     volumes:
       - db-data:/var/lib/postgresql/data:rw
   php:
@@ -21,8 +21,9 @@ services:
       DATABASE_URL: "postgresql://root:root@db:5432/regon"
       APP_URL: "http://regon.local:8099"
       APP_ENV: "dev"
-      APP_SECRET: "ndu5tb2ald1bt3i2279888xdia13le4b"
+      APP_SECRET: "16e46749f73993b92cc65a1a033e613b"
       APP_HOSTNAME: "regon.local"
+      GUS_API_KEY: "abcde12345abcde12345"
   nginx:
     image: nginx:1.19
     ports:
