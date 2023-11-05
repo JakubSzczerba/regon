@@ -36,7 +36,6 @@ class ResultService
             $sessionId = $gus->login();
             $data = $gus->getByRegon($sessionId, $regon);
         } catch (NotFoundException) {
-            echo 'Brak danych dla numeru REGON: ' . $regon;
         }
 
         $result = null;

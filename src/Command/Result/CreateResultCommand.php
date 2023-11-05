@@ -43,6 +43,9 @@ class CreateResultCommand
         }
 
         $result = $this->resultService->saveData($data['regon']);
+        if ($result === null) {
+            return new JsonResponse(['message' => 'Brak danych dla numeru REGON: ' . $data['regon']], 404);
+        }
 
         return new JsonResponse($this->serializer->serialize($result, 'json'), 200);
     }
