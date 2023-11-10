@@ -9,35 +9,60 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Command\Result\CreateResultCommand;
-use App\Command\Result\GetResultCommand;
+use App\Command\Result\CreateResult;
+use App\Repository\ResultRepository;
+use App\Services\Result\RegonValidator;
+use GusApi\Exception\NotFoundException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Serializer\SerializerInterface;
 
 #[Route('api')]
 class RegonApiController extends AbstractController
 {
-    private GetResultCommand $getResultCommand;
+    private ResultRepository $resultRepository;
 
-    private CreateResultCommand $createResultCommand;
+    private SerializerInterface $serializer;
 
-    public function __construct(GetResultCommand $getResultCommand, CreateResultCommand $createResultCommand)
+    private RegonValidator $regonValidator;
+
+    public function __construct(ResultRepository $resultRepository, SerializerInterface $serializer, RegonValidator $regonValidator)
     {
-        $this->getResultCommand = $getResultCommand;
-        $this->createResultCommand = $createResultCommand;
+        $this->resultRepository = $resultRepository;
+        $this->serializer = $serializer;
+        $this->regonValidator = $regonValidator;
     }
 
     #[Route('/regon', name: "listRegon", methods: ['GET'])]
     public function listRegon(): JsonResponse
     {
-        return $this->getResultCommand->execute();
+        $results = $this->resultRepository->getResults();
+
+        if (empty($results)) {
+            return new JsonResponse(['message' => 'Brak zapisanych wyników'], 200);
+        }
+
+        return new JsonResponse($this->serializer->serialize($results, 'json'), 200);
     }
 
     #[Route('/regon', name: "searchRegon", methods: ['POST'])]
-    public function searchRegon(Request $request): JsonResponse
+    public function searchRegon(Request $request, MessageBusInterface $commandBus): JsonResponse
     {
-        return $this->createResultCommand->execute($request);
+        $data = json_decode($request->getContent(), true);
+
+        if ($data === null) {
+            return new JsonResponse(['error' => 'Nie podano numeru REGON'], 400);
+        }
+
+        if (!($this->regonValidator->validate($data['regon']))) {
+            return new JsonResponse(['error' => 'Niepoprawny numer REGON'], 400);
+        }
+
+        $commandBus->dispatch(new CreateResult($data['regon']));
+
+        return new JsonResponse(['message' => 'Dodano wynik wyszukiwania'], 200);
     }
 }

@@ -11,23 +11,24 @@ namespace App\Services\Result;
 
 use App\Entity\Result;
 use App\Provider\Result\ResultProvider;
+use App\Repository\ResultRepository;
 use GusApi\GusApi;
 use GusApi\Exception\NotFoundException;
-use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class ResultService
 {
     private ResultProvider $resultProvider;
 
-    private EntityManagerInterface $em;
+    private ResultRepository $resultRepository;
 
-    public function __construct(ResultProvider $resultProvider, EntityManagerInterface $em)
+    public function __construct(ResultProvider $resultProvider, ResultRepository $resultRepository)
     {
         $this->resultProvider = $resultProvider;
-        $this->em = $em;
+        $this->resultRepository = $resultRepository;
     }
 
-    public function saveData(string $regon): ?Result
+    public function saveData(string $regon): JsonResponse|Result|null
     {
         $data = [];
         $gus = new GusApi($_ENV['GUS_API_KEY']);
@@ -36,18 +37,16 @@ class ResultService
             $sessionId = $gus->login();
             $data = $gus->getByRegon($sessionId, $regon);
         } catch (NotFoundException) {
-            echo 'Brak danych dla numeru REGON: ' . $regon;
+            return new JsonResponse(['message' => 'Brak danych dla numeru REGON: ' . $regon], 404);
         }
 
         $result = null;
         if (!empty($data)) {
             $result = $this->resultProvider->createResult($data);
 
-            $this->em->persist($result);
-            $this->em->flush();
+            $this->resultRepository->save($result);
         }
 
         return $result;
     }
-
 }

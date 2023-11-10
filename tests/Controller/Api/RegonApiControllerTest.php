@@ -45,12 +45,12 @@ class RegonApiControllerTest extends WebTestCase
 
         $data = [
             /* looks familiar :) */
-            'regon' => '366827724 '
+            'regon' => '526292691 '
         ];
 
         $client->request('POST', '/api/regon', [], [], [], json_encode($data));
 
-        $this->expectOutputString('Brak danych dla numeru REGON: 366827724 ');
+        $this->assertEquals(404, $client->getResponse()->getStatusCode());
     }
 
     public function testSearchWithEmptyData(): void
